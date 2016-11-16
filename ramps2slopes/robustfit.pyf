@@ -1,0 +1,55 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module robustfit ! in 
+    interface  ! in :robustfit
+        module precision ! in :robustfit:precision.f90
+            integer, parameter,optional :: double_bn=8
+        end module precision
+        subroutine robustfit(naxes,imagecube,bpix,sat,zpt,slope,image) ! in :robustfit:robustfit.f90
+            use precision
+            integer dimension(3) :: naxes
+            real(kind=8) dimension(:,:,:) :: imagecube
+            real(kind=8) :: bpix
+            real(kind=8) :: sat
+            real(kind=8) dimension(:,:) :: zpt
+            real(kind=8) dimension(:,:) :: slope
+            real(kind=8) dimension(:,:) :: image
+        end subroutine robustfit
+        subroutine medfit(x,y,ndata,a,b,abdev) ! in :robustfit:medfit.f
+            real*8 dimension(ndata) :: x
+            real*8 dimension(ndata),depend(ndata) :: y
+            integer, optional,check(len(x)>=ndata),depend(x) :: ndata=len(x)
+            real*8 :: a
+            real*8 :: b
+            real*8 :: abdev
+            real*8 dimension(1000) :: xt
+            real*8 dimension(1000) :: yt
+            real*8 dimension(1000) :: arr
+            real*8 :: aa
+            real*8 :: abdevt
+            integer :: ndatat
+            common /arrays/ xt,yt,arr,aa,abdevt,ndatat
+        end subroutine medfit
+        function rofunc(b) ! in :robustfit:medfit.f
+            real*8 :: b
+            real*8 dimension(1000) :: x
+            real*8 dimension(1000) :: y
+            real*8 dimension(1000) :: arr
+            real*8 :: aa
+            real*8 :: abdev
+            integer :: ndata
+            real*8 :: rofunc
+            common /arrays/ x,y,arr,aa,abdev,ndata
+        end function rofunc
+        function select(k,n,arr) ! in :robustfit:medfit.f
+            integer :: k
+            integer, optional,check(len(arr)>=n),depend(arr) :: n=len(arr)
+            real*8 dimension(n) :: arr
+            real*8 :: select
+        end function select
+    end interface 
+end python module robustfit
+
+! This file was auto-generated with f2py (version:2).
+! See http://cens.ioc.ee/projects/f2py2e/
