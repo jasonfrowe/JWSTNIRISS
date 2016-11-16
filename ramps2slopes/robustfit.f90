@@ -15,7 +15,7 @@ real(double), allocatable, dimension(:) :: x,y
 allocate(x(naxes(1)),y(naxes(1)))
 dnaxes3=dble(naxes(1)) !pre-compute double 
 
-write(6,*) naxes(1),naxes(2),naxes(3)
+write(6,*) size(Imagecube,1),size(Imagecube,2),size(Imagecube,3)
 
 !loop over 2D image to measure ramps
 do i=1,naxes(2)
@@ -33,9 +33,13 @@ do i=1,naxes(2)
       if(npt.ge.2)then
          call medfit(x,y,npt,a,b,abdev)
 !        create Image
+         zpt(i,j)=a
+         slope(i,j)=b
          Image(i,j)=b*dnaxes3 !construct image
       else
-         Image(i,j)=Imagecube(i,j,naxes(3)) !construct image
+         zpt(i,j)=Imagecube(1,i,j)
+         slope(i,j)=0.0d0
+         Image(i,j)=Imagecube(naxes(3),i,j) !construct image
       endif
 
    enddo
