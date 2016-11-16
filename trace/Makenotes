@@ -1,0 +1,1 @@
+f2py3.5 --fcompiler=intelem -c tracetools.pyf precision.f90 fittingmod.f90 trace.f90 loadpsfinit.f90 psfmodel1d.f90 modelline.f90 getsky.f90 minpack.f rqsort.f stdev.f triplegaussian.f90 apflux.f90
