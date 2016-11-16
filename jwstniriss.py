@@ -1,6 +1,5 @@
 import sys
 sys.path.insert(0, 'ramps2slopes/')
-#import robustfit as rb
 
 from astropy.io import fits #astropy modules for FITS IO
 def read_datacube(filename):
