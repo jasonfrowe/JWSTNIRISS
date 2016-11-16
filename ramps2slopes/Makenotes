@@ -1,0 +1,2 @@
+f2py3.5 -m robustfit -h robustfit.pyf precision.f90 robustfit.f90 medfit.f 
+f2py3.5 --fcompiler=intelem -c robustfit.pyf precision.f90 robustfit.f90 medfit.f
