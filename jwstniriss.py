@@ -1,5 +1,6 @@
 import sys
 sys.path.insert(0, 'ramps2slopes/')
+sys.path.insert(0, 'trace/')
 
 from astropy.io import fits #astropy modules for FITS IO
 def read_datacube(filename):
@@ -11,4 +12,9 @@ def read_datacube(filename):
 
 import ramps2slopes as rs
 r2s=rs.r2s
+
+import trace as tr
+apertureflux=tr.apertureflux
+tracespec=tr.tracespec
+
 
