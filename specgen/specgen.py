@@ -67,9 +67,73 @@ def p2w(p,noversample,ntrace):
     pix=p/noversample
     w=c[ntrace-1][0]
     for i in range(1,nc):
+<<<<<<< HEAD
+        #print(w)
+=======
         print(w)
+>>>>>>> 0f48827483c840c8cf84c0f75055ad7b0c02e7aa
         w+=np.power(pix,i)*c[ntrace-1][i]
     w*=10000.0 #um to A
                   
     return w
+<<<<<<< HEAD
+
+def w2p(w,noversample,ntrace):
+    "Usage: p=w2p(p,noversample,ntrace) Converts wavelength (w) to x-pixel (p)"
+    nc=5
     
+    c=[[2957.38,-1678.19,526.903,-183.545,23.4633],\
+       [3040.35,-2891.28,682.155,-189.996,0.0],\
+       [2825.46,-3211.14,2.69446,0.0,0.0]]
+    
+    wum=w/10000.0 #A->um
+    p=c[ntrace-1][0]
+    for i in range(1,nc):
+        #print(p)
+        p+=np.power(wum,i)*c[ntrace-1][i]
+    p=p*noversample
+                  
+    return p    
+
+def addflux2pix(px,py,pixels,pixelnorm,fmod):
+    "Drizel Flux onto Pixels using a square PSF of size unity"
+    
+    xmax=pixels.shape[0] #Size of pixel array
+    ymax=pixels.shape[1]
+    
+    pxmh=px-0.5 #location of reference corner of PSF square
+    pymh=py-0.5
+    
+    dx=np.floor(px+0.5)-pxmh
+    dy=np.floor(py+0.5)-pymh
+ 
+    npx=int(pxmh) #Numpy arrays start at zero
+    npy=int(pymh) 
+    if npx >= 0 and npx < xmax and npy >=0 and npy < ymax:
+        pixels[npx,npy]+=fmod*dx*dy
+        pixelnorm[npx,npy]+=1
+        
+    npx=int(pxmh)+1
+    npy=int(pymh)
+    if npx >= 0 and npx < xmax and npy >=0 and npy < ymax:
+        pixels[npx,npy]+=fmod*(1.0-dx)*dy
+        pixelnorm[npx,npy]+=1
+
+    npx=int(pxmh)
+    npy=int(pymh)+1
+    if npx >= 0 and npx < xmax and npy >=0 and npy < ymax:
+        pixels[npx,npy]+=fmod*dx*(1.0-dy)
+        pixelnorm[npx,npy]+=1
+
+    npx=int(pxmh)+1
+    npy=int(pymh)+1
+    if npx >= 0 and npx < xmax and npy >=0 and npy < ymax:
+        pixels[npx,npy]+=fmod*(1.0-dx)*(1.0-dy)
+        pixelnorm[npx,npy]+=1
+
+    #print(pixels[npx,npy],npx,npy,px,py)
+    #input()
+    return pixels,pixelnorm;
+=======
+    
+>>>>>>> 0f48827483c840c8cf84c0f75055ad7b0c02e7aa
