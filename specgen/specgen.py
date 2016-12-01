@@ -67,11 +67,16 @@ def p2w(p,noversample,ntrace):
     pix=p/noversample
     w=c[ntrace-1][0]
     for i in range(1,nc):
+<<<<<<< HEAD
         #print(w)
+=======
+        print(w)
+>>>>>>> 0f48827483c840c8cf84c0f75055ad7b0c02e7aa
         w+=np.power(pix,i)*c[ntrace-1][i]
     w*=10000.0 #um to A
                   
     return w
+<<<<<<< HEAD
 
 def w2p(w,noversample,ntrace):
     "Usage: p=w2p(p,noversample,ntrace) Converts wavelength (w) to x-pixel (p)"
@@ -129,3 +134,6 @@ def addflux2pix(px,py,pixels,pixelnorm,fmod):
     #print(pixels[npx,npy],npx,npy,px,py)
     #input()
     return pixels,pixelnorm;
+=======
+    
+>>>>>>> 0f48827483c840c8cf84c0f75055ad7b0c02e7aa
