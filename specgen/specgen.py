@@ -129,3 +129,20 @@ def addflux2pix(px,py,pixels,pixelnorm,fmod):
     #print(pixels[npx,npy],npx,npy,px,py)
     #input()
     return pixels,pixelnorm;
+
+def ptrace(px,noversample,ntrace):
+    "given x-pixel, return y-position based on trace"
+    nc=5 #number of co-efficients
+    c=[[275.685,0.0587943,-0.000109117,1.06605e-7,-3.87e-11],\
+      [254.109,-0.00121072,-1.84106e-05,4.81603e-09,-2.14646e-11],\
+      [203.104,-0.0483124,-4.79001e-05,0.0,0.0]]
+    
+    opx=px/noversample #account for oversampling
+    
+    ptrace=c[ntrace-1][0]
+    for i in range(1,nc):
+        #print(w)
+        ptrace+=np.power(opx,i)*c[ntrace-1][i]
+        
+    ptrace=ptrace-128
+    return ptrace;
