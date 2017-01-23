@@ -1,9 +1,11 @@
 from astropy.io import fits #astropy modules for FITS IO
 import numpy as np #numpy gives us better array management 
+from scipy import interpolate #spline interpolation
+from scipy.signal import convolve2d
 
 def readresponse():
     "Usage: ld,res1,res2,res3=readresponse()"
-    response_file="NIRISS_Throughput_EBOI.fits"
+    response_file="specgen/NIRISS_Throughput_EBOI.fits"
     hdulist = fits.open(response_file)
     tbdata = hdulist[1].data             #fetch table data for HUD=1
     reponse_ld=tbdata.field(0)[0]*10.0   #Wavelength (A) 
@@ -146,3 +148,85 @@ def ptrace(px,noversample,ntrace):
         
     ptrace=ptrace-128
     return ptrace;
+
+def genunconvolveimg(xout,yout,noversample,response_ld,response_n1,starmodel_wv,\
+ starmodel_flux):
+    "Generate Unconvolved 2D Image"
+    pixels=np.zeros((xout*noversample,yout*noversample))
+    pixelnorm=np.zeros((xout*noversample,yout*noversample))
+
+    response_spl = interpolate.splrep(response_ld, response_n1, s=0)
+    rmax=np.max(response_ld)
+    rmin=np.min(response_ld)
+    for k in range(starmodel_wv.shape[0]):
+    
+        w=starmodel_wv[k]
+        i=w2p(w,noversample,1)
+        j=ptrace(i,noversample,1)
+        if w < rmax and w > rmin:
+            response_one = interpolate.splev(w, response_spl, der=0)
+        else:
+            response_one = 0
+        flux=starmodel_flux[k]*response_one
+        pixels,pixelnorm=addflux2pix(i,j,pixels,pixelnorm,flux)
+    
+    #Normalized the drizzled pixels
+    pixels=pixels/np.ma.array(pixelnorm,mask=(pixelnorm==0))
+
+    return pixels;
+
+def convolveimg(pixels):
+    waverange=np.arange(500,3500,100) #central wavelength for each PSF model 
+    nsubimg=len(waverange)            #number of PSF models
+    ncol=len(pixels)                  #number of columns in 2D image
+    columnmaps=np.zeros((nsubimg,ncol))    #map each column to sub-image for convolution
+    ncolmap=np.zeros(nsubimg) #number of columns in each sub-image
+    columnweights=np.zeros((nsubimg,ncol)) #weight of each column in sub-image
+    for i in range(ncol):
+        wav=p2w(i+1,1,1)/10  #convert pixel to wavelength 
+        nwav=int((wav-500)/100) #identify appropriate PSF model 
+
+        j=0
+        if nwav+j >= 0 and nwav+j < nsubimg:
+            ncolmap[nwav+j]+=1
+            columnmaps[nwav+j,int(ncolmap[nwav+j]-1)]=i+1
+            weight=1-np.abs(waverange[nwav+j]-wav)/100
+            columnweights[nwav+j,int(ncolmap[nwav+j]-1)]=weight
+    
+        j=1
+        if nwav+j >= 0 and nwav+j < nsubimg:
+            ncolmap[nwav+j]+=1
+            columnmaps[nwav+j,int(ncolmap[nwav+j]-1)]=i+1
+            weight=1-np.abs(waverange[nwav+j]-wav)/100
+            columnweights[nwav+j,int(ncolmap[nwav+j]-1)]=weight
+    
+        j=2
+        if nwav+j >= 0 and nwav+j < nsubimg:
+            ncolmap[nwav+j]+=1
+            columnmaps[nwav+j,int(ncolmap[nwav+j]-1)]=i+1
+            weight=1-np.abs(waverange[nwav+j]-wav)/100
+            columnweights[nwav+j,int(ncolmap[nwav+j]-1)]=0
+    
+        j=1-1
+        if nwav+j >= 0 and nwav+j < nsubimg:
+            ncolmap[nwav+j]+=1
+            columnmaps[nwav+j,int(ncolmap[nwav+j]-1)]=i+1
+            weight=1-np.abs(waverange[nwav+j]-wav)/100
+            columnweights[nwav+j,int(ncolmap[nwav+j]-1)]=0
+
+
+    cimage=np.zeros(pixels.shape)
+    for i in range(nsubimg):
+        if ncolmap[i]>0 :
+            subimg=np.zeros((int(ncolmap[i]),pixels.shape[1]))
+            for j in range(int(ncolmap[i])):
+                subimg[j,:]=pixels[int(columnmaps[i,j]-1),:]
+            kfile="specgen/Kernels1/psf_"+str(int(waverange[i]))+"nm_x10_oversampled.fits"
+            hdulist = fits.open(kfile) #open the FITS file
+            psfdata = hdulist[0].data #extract the Image
+            csubimg=convolve2d(subimg,psfdata,mode='same')
+        
+            for j in range(int(ncolmap[i])):
+                cimage[int(columnmaps[i,j]-1),:]+=csubimg[j,:]*columnweights[i,j]
+
+    return cimage;
