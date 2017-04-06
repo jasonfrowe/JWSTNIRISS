@@ -93,43 +93,78 @@ def w2p(w,noversample,ntrace):
     return p    
 
 def addflux2pix(px,py,pixels,pixelnorm,fmod):
-    "Drizel Flux onto Pixels using a square PSF of size unity"
-    
-    xmax=pixels.shape[0] #Size of pixel array
-    ymax=pixels.shape[1]
-    
-    pxmh=px-0.5 #location of reference corner of PSF square
-    pymh=py-0.5
-    
-    dx=np.floor(px+0.5)-pxmh
-    dy=np.floor(py+0.5)-pymh
- 
-    npx=int(pxmh) #Numpy arrays start at zero
-    npy=int(pymh) 
-    if npx >= 0 and npx < xmax and npy >=0 and npy < ymax:
-        pixels[npx,npy]+=fmod*dx*dy
-        pixelnorm[npx,npy]+=1
-        
-    npx=int(pxmh)+1
-    npy=int(pymh)
-    if npx >= 0 and npx < xmax and npy >=0 and npy < ymax:
-        pixels[npx,npy]+=fmod*(1.0-dx)*dy
-        pixelnorm[npx,npy]+=1
+    "Drizel Flux onto Pixels using a square PSF of pixel size unity"
+    '''
+    px,py are the pixel position (can be an array)
+    fmod is the flux calculated for (px,py) pixel
+        and it has the same length as px and py
+    pixels and pixelnorm are the image and image normalisation
+    '''
 
-    npx=int(pxmh)
-    npy=int(pymh)+1
-    if npx >= 0 and npx < xmax and npy >=0 and npy < ymax:
-        pixels[npx,npy]+=fmod*dx*(1.0-dy)
-        pixelnorm[npx,npy]+=1
+    # Make sure px and py are numpy arrays
+    if px.shape == ():  # () stands for "no dimension"
+        px = np.array([px])
 
-    npx=int(pxmh)+1
-    npy=int(pymh)+1
-    if npx >= 0 and npx < xmax and npy >=0 and npy < ymax:
-        pixels[npx,npy]+=fmod*(1.0-dx)*(1.0-dy)
-        pixelnorm[npx,npy]+=1
+    if py.shape == ():
+        py = np.array([py])
 
-    #print(pixels[npx,npy],npx,npy,px,py)
-    #input()
+    if fmod.shape == ():
+        fmod = np.array([fmod])
+
+    xmax = pixels.shape[0] #Size of pixel array
+    ymax = pixels.shape[1]
+
+    pxmh = px-0.5 #location of reference corner of PSF square
+    pymh = py-0.5
+
+    dx = np.floor(px+0.5)-pxmh
+    dy = np.floor(py+0.5)-pymh
+
+    # Supposing right-left as x axis and up-down as y axis:
+    # Lower left pixel
+
+    npx = np.array(np.floor(pxmh), dtype=int) #Numpy arrays start at zero
+    npy = np.array(np.floor(pymh), dtype=int)
+
+    # Condition previously implement with an if statement
+    # Now used as a mask
+    cond = (npx >= 0) & (npx < xmax) & (npy >= 0) & (npy < ymax)
+
+    '''
+    Same operation as "pixels[npx,npy] += fmod*dx*dy" for fmod vector.
+    Using += mixed with indexing is problematic when you want to increment many
+    times the same position. This is why the np.add.at function is used.
+    '''
+
+    np.add.at(pixels, [npx[cond], npy[cond]], fmod[cond]*dx[cond]*dy[cond])
+    np.add.at(pixelnorm, [npx[cond], npy[cond]], 1. * (dx[cond]>0.) * (dy[cond]>0.))
+
+    '''
+    Same 5 operations are done for the 3 pixels other neighbouring pixels
+    '''
+
+    # Lower right pixel
+    npx=np.array(np.floor(pxmh),dtype=int)+1 #Numpy arrays start at zero
+    npy=np.array(np.floor(pymh),dtype=int)
+    cond = (npx >= 0) & (npx < xmax) & (npy >= 0) & (npy < ymax)
+    np.add.at(pixels,[npx[cond], npy[cond]], fmod[cond]*(1.-dx[cond])*dy[cond])
+    np.add.at(pixelnorm,[npx[cond], npy[cond]], 1. * (dy[cond]>0.))
+
+    # Upper left pixel
+    npx=np.array(np.floor(pxmh),dtype=int) #Numpy arrays start at zero
+    npy=np.array(np.floor(pymh),dtype=int)+1
+    cond = (npx >= 0) & (npx < xmax) & (npy >= 0) & (npy < ymax)
+    np.add.at(pixels,[npx[cond], npy[cond]], fmod[cond]*dx[cond]*(1.-dy[cond]))
+    np.add.at(pixelnorm,[npx[cond], npy[cond]], 1. * (dx[cond]>0.))
+
+    # Upper right pixel
+    npx=np.array(np.floor(pxmh),dtype=int)+1 #Numpy arrays start at zero
+    npy=np.array(np.floor(pymh),dtype=int)+1
+    cond = (npx >= 0) & (npx < xmax) & (npy >= 0) & (npy < ymax)
+    np.add.at(pixels, [npx[cond], npy[cond]], fmod[cond]*(1.-dx[cond])*(1.-dy[cond]))
+    np.add.at(pixelnorm, [npx[cond], npy[cond]], 1.)
+
+
     return pixels,pixelnorm;
 
 def ptrace(px,noversample,ntrace):
@@ -158,20 +193,28 @@ def genunconvolveimg(xout,yout,noversample,response_ld,response_n1,starmodel_wv,
     response_spl = interpolate.splrep(response_ld, response_n1, s=0)
     rmax=np.max(response_ld)
     rmin=np.min(response_ld)
-    for k in range(starmodel_wv.shape[0]):
-    
-        w=starmodel_wv[k]
-        i=w2p(w,noversample,1)
-        j=ptrace(i,noversample,1)
-        if w < rmax and w > rmin:
-            response_one = interpolate.splev(w, response_spl, der=0)
-        else:
-            response_one = 0
-        flux=starmodel_flux[k]*response_one
-        pixels,pixelnorm=addflux2pix(i,j,pixels,pixelnorm,flux)
-    
+
+    w = np.asarray(starmodel_wv)
+    i = ex.w2p(w,noversample,n+1)
+    j = ex.ptrace(i,noversample,n+1)
+
+    # Replace the if statement by indexing
+    index = np.where((w < rmax) & (w > rmin))
+
+    # Else -> response_one = 0
+    response_one = np.zeros_like(w)
+
+    # Applying the if statement
+    response_one[index] = interpolate.splev(w[index], response_spl, der=0)
+
+    # Same step as older version
+    flux = starmodel_flux * response_one
+
+    # Now i, j and flux can be arrays (old version still can be used)
+    pixels,pixelnorm = ex.addflux2pix(i, j, pixels, pixelnorm, flux)
+
     #Normalized the drizzled pixels
-    pixels=pixels/np.ma.array(pixelnorm,mask=(pixelnorm==0))
+    pixels = pixels/np.ma.array(pixelnorm, mask=(pixelnorm==0))
 
     return pixels;
 
